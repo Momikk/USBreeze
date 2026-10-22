@@ -27,3 +27,7 @@ Simplified Chinese and English are supported. The app follows your system langua
 Tests do not overwrite your existing files. Test files are removed automatically when a test finishes or is stopped.
 
 Speed depends on your computer's port, cable, and drive. When comparing cables, use the same drive, port, and test mode.
+
+## License
+
+This project is licensed under [AGPL-3.0](LICENSE).
