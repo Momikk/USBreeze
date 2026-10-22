@@ -51,6 +51,8 @@ public sealed class Texts : INotifyPropertyChanged
         ["Flush"] = ("The device could not finish flushing writes.", "设备无法完成写入刷新。"),
         ["Seek"] = ("The test file could not be positioned for reading.", "无法定位测试文件进行读取。"),
         ["Help"] = ("About this test", "测试说明"),
+        ["SourceCode"] = ("Source code", "源代码"),
+        ["ThirdParty"] = ("Third-party licenses", "第三方许可证"),
         ["HelpText"] = ("A sequential write test followed by a read test of the same temporary file. Windows file caching is bypassed; device caches, temperature and other activity can still affect results. Use a larger test to observe sustained speed. To compare cables, keep the same drive, port and test size. Tests write data and count toward flash wear.", "先顺序写入，再读取同一临时文件。测试绕过 Windows 文件缓存，但设备内部缓存、温度和其他读写活动仍会影响结果。较大测试适合观察持续速度。比较线材时，请保持硬盘、接口和测试大小一致。测试会写入数据，并计入闪存写入量。"),
         ["ExportFailed"] = ("Could not export the results. Choose another location.", "无法导出测试结果，请选择其他位置。"),
         ["ScanningFailed"] = ("Could not list devices. Click refresh to try again.", "无法获取设备列表，请点击刷新重试。")

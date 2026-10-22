@@ -12,7 +12,7 @@ Works on Windows 10 / 11 (64-bit). No installation needed.
 
 ## How to use
 
-1. Download the ZIP, extract all files, and open `USBreeze.exe`.
+1. Download the `.exe` file and double-click to open it. No extraction needed.
 2. Connect your drive and select it from the list.
 3. Click **Start test** to see its read and write speeds.
 

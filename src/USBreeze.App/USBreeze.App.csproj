@@ -1,1 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>WinExe</OutputType><UseWPF>true</UseWPF><AssemblyName>USBreeze</AssemblyName><Version>0.1.0</Version><PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression><ApplicationManifest>app.manifest</ApplicationManifest></PropertyGroup><ItemGroup><ProjectReference Include="../USBreeze.Core/USBreeze.Core.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>USBreeze</AssemblyName>
+    <Version>0.1.1</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../USBreeze.Core/USBreeze.Core.csproj" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="USBreeze.LICENSE" />
+    <EmbeddedResource Include="../../licenses/DOTNET-LICENSE.txt" LogicalName="USBreeze.DOTNET-LICENSE" />
+    <EmbeddedResource Include="../../licenses/DOTNET-THIRD-PARTY-NOTICES.txt" LogicalName="USBreeze.DOTNET-NOTICES" />
+  </ItemGroup>
+</Project>

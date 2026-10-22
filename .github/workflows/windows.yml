@@ -17,13 +17,20 @@ jobs:
         run: dotnet build src/USBreeze.App/USBreeze.App.csproj -c Release
       - name: Check localization and file safety
         run: dotnet run --project tests/USBreeze.Checks -c Release
-      - name: Publish portable Windows x64 app
-        run: dotnet publish src/USBreeze.App/USBreeze.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/USBreeze-win-x64
-      - name: Package
+      - name: Publish standalone Windows x64 EXE
+        run: dotnet publish src/USBreeze.App/USBreeze.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/single-file
+      - name: Verify single-file package
         shell: pwsh
-        run: Compress-Archive -Path artifacts/USBreeze-win-x64/* -DestinationPath artifacts/USBreeze-win-x64.zip
+        run: |
+          $files = @(Get-ChildItem artifacts/single-file -Recurse -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'USBreeze.exe') {
+            throw 'Expected exactly one standalone USBreeze.exe'
+          }
+          [xml]$project = Get-Content src/USBreeze.App/USBreeze.App.csproj
+          $version = $project.Project.PropertyGroup.Version
+          Move-Item artifacts/single-file/USBreeze.exe "artifacts/USBreeze-v$version-win-x64.exe"
       - uses: actions/upload-artifact@v4
         with:
-          name: USBreeze-win-x64
-          path: artifacts/USBreeze-win-x64.zip
+          name: USBreeze-win-x64-exe
+          path: artifacts/USBreeze-v*-win-x64.exe
           if-no-files-found: error

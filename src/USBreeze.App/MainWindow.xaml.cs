@@ -195,7 +195,7 @@ public partial class MainWindow : Window
     {
         noticeKey = key; noticeCode = code; Notice.Text = text[key] + (code == 0 ? "" : " " + text.Format("Code", code)); Notice.Visibility = Visibility.Visible;
     }
-    private void HelpClick(object sender, RoutedEventArgs e) => MessageBox.Show(this, text["HelpText"], text["Help"], MessageBoxButton.OK, MessageBoxImage.Information);
+    private void HelpClick(object sender, RoutedEventArgs e) => new HelpWindow { Owner = this }.ShowDialog();
     private void ExportClick(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog { Title = text["ExportTitle"], Filter = "CSV (*.csv)|*.csv", FileName = $"USBreeze-{DateTime.Now:yyyyMMdd-HHmm}.csv" };
