@@ -22,7 +22,11 @@ public sealed class HelpWindow : Window
         AddTab(tabs, text["Help"], $"USBreeze v{versionLabel}\n\n{text["HelpText"]}\n\n{text["SourceCode"]}\nhttps://github.com/Momikk/USBreeze/tree/v{versionLabel}");
         AddTab(tabs, "AGPL-3.0", Resource("USBreeze.LICENSE"));
         AddTab(tabs, text["ThirdParty"], Resource("USBreeze.DOTNET-LICENSE") + "\n\n" + Resource("USBreeze.DOTNET-NOTICES"));
-        Content = tabs;
+        var layout = new DockPanel();
+        var homepage = new Button { Content = "Momikk · github.com/Momikk ↗", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(22, 0, 22, 16), Padding = new Thickness(8, 5, 8, 5) };
+        homepage.Click += (_, _) => ProjectLinks.OpenHomepage(this);
+        DockPanel.SetDock(homepage, Dock.Bottom); layout.Children.Add(homepage); layout.Children.Add(tabs);
+        Content = layout;
     }
 
     private static void AddTab(TabControl tabs, string title, string content) => tabs.Items.Add(new TabItem

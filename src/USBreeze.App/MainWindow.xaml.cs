@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     {
         preferences = Preferences.Load(Path.Combine(dataDirectory, "preferences.json"));
         ApplyLanguage(); InitializeComponent();
+        MaxHeight = SystemParameters.WorkArea.Height;
         try { history = History.Load(Path.Combine(dataDirectory, "history.json")); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { history = []; ShowNotice("HistoryLoadWarning"); }
         (preferences.Mode switch { 0 => QuickMode, 2 => SmallFilesMode, _ => LargeFileMode }).IsChecked = true;
@@ -38,6 +39,14 @@ public partial class MainWindow : Window
         scanTimer.Tick += async (_, _) => await ScanAsync();
         initialized = true; RefreshLanguage();
     }
+    private void WindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || WindowState != WindowState.Normal) return;
+        var area = SystemParameters.WorkArea;
+        if (Top + ActualHeight > area.Bottom) Top = Math.Max(area.Top, area.Bottom - ActualHeight);
+    }
+    private void HistoryToggled(object sender, RoutedEventArgs e) => SizeToContent = SizeToContent.Height;
+    private void HomepageClick(object sender, RoutedEventArgs e) => ProjectLinks.OpenHomepage(this);
     private async void OnLoaded(object sender, RoutedEventArgs e) { await ScanAsync(); scanTimer.Start(); }
     private void ApplyLanguage() => text.Set(LanguageChoice.Resolve(preferences.Language, LanguageChoice.GetOsDisplayLanguage()));
     private void LanguageClick(object sender, RoutedEventArgs e)

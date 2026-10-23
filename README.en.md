@@ -31,3 +31,5 @@ Speed depends on your computer's port, cable, and drive. When comparing cables, 
 ## License
 
 This project is licensed under [AGPL-3.0](LICENSE).
+
+Author: [Momikk](https://github.com/Momikk)

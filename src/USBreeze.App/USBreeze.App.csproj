@@ -3,7 +3,11 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <AssemblyName>USBreeze</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
+    <Authors>Momikk</Authors>
+    <Company>Momikk · https://github.com/Momikk</Company>
+    <Copyright>Copyright © Momikk · https://github.com/Momikk</Copyright>
+    <PackageProjectUrl>https://github.com/Momikk</PackageProjectUrl>
     <ApplicationIcon>Assets/USBreeze.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
