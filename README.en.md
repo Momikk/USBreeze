@@ -16,7 +16,7 @@ Works on Windows 10 / 11 (64-bit). No installation needed.
 2. Connect your drive and select it from the list.
 3. Click **Start test** to see its read and write speeds.
 
-Start with **Quick**. Choose **Standard** or **Extended** to observe performance over a longer test. You can stop at any time, view recent results, and export them.
+Use **Quick** for an initial check, **Large file** for one 1 GiB file, or **Many small files** for 1,024 small files. See speed and elapsed time, stop at any time, view recent results, and export them.
 
 ## Language
 

@@ -4,8 +4,9 @@ using System.Security.Cryptography;
 
 namespace USBreeze.Core;
 
-public sealed record SpeedSample(string Phase, double MegabytesPerSecond, double Fraction, double ElapsedSeconds);
-public sealed record BenchmarkResult(DateTimeOffset Time, string Device, string Root, long TestBytes, double WriteMBps, double ReadMBps);
+public sealed record SpeedSample(string Phase, double MegabytesPerSecond, double Fraction, double ElapsedSeconds, bool Finishing = false);
+public sealed record BenchmarkResult(DateTimeOffset Time, string Device, string Root, long TestBytes, double WriteMBps, double ReadMBps,
+    string Mode = "Quick", int FileCount = 1, double WriteSeconds = 0, double ReadSeconds = 0);
 
 public static class Benchmark
 {
@@ -28,6 +29,11 @@ public static class Benchmark
     public static Task<BenchmarkResult> RunAsync(string directory, string device, long bytes,
         IProgress<SpeedSample>? progress, CancellationToken token) =>
         Task.Run(() => Run(directory, device, bytes, progress, token), token);
+
+    public static Task<BenchmarkResult> RunAsync(string directory, string device, TransferPlan plan,
+        IProgress<SpeedSample>? progress, CancellationToken token) => plan.Mode == TestMode.Quick
+            ? RunAsync(directory, device, plan.TotalBytes, progress, token)
+            : FileTransferBenchmark.RunAsync(directory, device, plan, progress, token);
 
     private static unsafe BenchmarkResult Run(string directory, string device, long bytes,
         IProgress<SpeedSample>? progress, CancellationToken token)
@@ -86,7 +92,8 @@ public static class Benchmark
             if (!Native.SetFilePointerEx(file, 0, out _, 0)) ThrowIo(BenchmarkError.Seek);
             var readSpeed = Transfer(false);
             token.ThrowIfCancellationRequested();
-            return new(DateTimeOffset.Now, device, root, bytes, writeSpeed, readSpeed);
+            return new(DateTimeOffset.Now, device, root, bytes, writeSpeed, readSpeed,
+                WriteSeconds: bytes / 1e6 / writeSpeed, ReadSeconds: bytes / 1e6 / readSpeed);
         }
         finally { NativeMemory.AlignedFree(pointer); }
     }

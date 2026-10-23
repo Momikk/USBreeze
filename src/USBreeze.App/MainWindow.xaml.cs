@@ -13,8 +13,8 @@ namespace USBreeze.App;
 
 public partial class MainWindow : Window
 {
-    private static readonly long[] TestSizes = [256L << 20, 1L << 30, 4L << 30];
-    private static readonly string[] SizeLabels = ["256 MiB", "1 GiB", "4 GiB"];
+    private TransferPlan Plan => TransferPlan.For((TestMode)preferences.Mode);
+    private double writeSeconds, readSeconds;
     private readonly string dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "USBreeze");
     private readonly DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly Preferences preferences;
@@ -33,7 +33,7 @@ public partial class MainWindow : Window
         ApplyLanguage(); InitializeComponent();
         try { history = History.Load(Path.Combine(dataDirectory, "history.json")); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { history = []; ShowNotice("HistoryLoadWarning"); }
-        (preferences.Mode switch { 0 => QuickMode, 2 => ExtendedMode, _ => StandardMode }).IsChecked = true;
+        (preferences.Mode switch { 0 => QuickMode, 2 => SmallFilesMode, _ => LargeFileMode }).IsChecked = true;
         WriteChart.Series = "Write"; ReadChart.Series = "Read";
         scanTimer.Tick += async (_, _) => await ScanAsync();
         initialized = true; RefreshLanguage();
@@ -60,9 +60,18 @@ public partial class MainWindow : Window
     {
         Language = System.Windows.Markup.XmlLanguage.GetLanguage(text.Culture.Name);
         RefreshDeviceText(); RefreshStatus(); RefreshHistory();
-        ModeInfo.Text = text.Format("FileSize", SizeLabels[preferences.Mode]);
+        RefreshModeInfo();
         StartLabel.Text = text[cancelRequested ? "Stopping" : cancellation is null ? "Start" : "Stop"];
+        if (WriteValue.Text != "—") WriteValue.RefreshText();
+        if (ReadValue.Text != "—") ReadValue.RefreshText();
+        RefreshTimes();
         if (noticeKey is not null) ShowNotice(noticeKey, noticeCode);
+    }
+    private void RefreshModeInfo() => ModeInfo.Text = text[preferences.Mode switch { 0 => "QuickInfo", 2 => "SmallFilesInfo", _ => "LargeFileInfo" }];
+    private void RefreshTimes()
+    {
+        WriteTime.Text = writeSeconds > 0 ? text.Format("Elapsed", writeSeconds) : "";
+        ReadTime.Text = readSeconds > 0 ? text.Format("Elapsed", readSeconds) : "";
     }
     private void SavePreferences()
     {
@@ -73,7 +82,7 @@ public partial class MainWindow : Window
     {
         if (!initialized) return;
         preferences.Mode = int.Parse((string)((RadioButton)sender).Tag, CultureInfo.InvariantCulture);
-        ModeInfo.Text = text.Format("FileSize", SizeLabels[preferences.Mode]); SavePreferences();
+        RefreshModeInfo(); SavePreferences();
     }
     private void DeviceChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -82,7 +91,7 @@ public partial class MainWindow : Window
         if (cancellation is null)
         {
             stateKey = DevicePicker.SelectedItem is UsbDrive ? "Ready" : "Waiting";
-            WriteValue.Text = ReadValue.Text = "—"; Progress.Value = 0;
+            WriteValue.Reset(); ReadValue.Reset(); writeSeconds = readSeconds = 0; RefreshTimes(); Progress.Value = 0;
             WriteChart.Clear(); ReadChart.Clear(); RefreshStatus();
         }
     }
@@ -138,7 +147,7 @@ public partial class MainWindow : Window
         if (DevicePicker.SelectedItem is not UsbDrive selected) return;
         cancellation = new(); cancelRequested = false; latest = null;
         SetRunning(true); Notice.Visibility = Visibility.Collapsed; noticeKey = null; noticeCode = 0;
-        WriteValue.Text = ReadValue.Text = "—"; WriteChart.Clear(); ReadChart.Clear(); Progress.Value = 0;
+        WriteValue.Reset(); ReadValue.Reset(); writeSeconds = readSeconds = 0; RefreshTimes(); WriteChart.Clear(); ReadChart.Clear(); Progress.Value = 0;
         stateKey = "Writing"; RefreshStatus();
         try
         {
@@ -148,13 +157,16 @@ public partial class MainWindow : Window
             var observer = new Progress<SpeedSample>(sample =>
             {
                 if (cancellation is null || cancelRequested) return;
-                latest = sample; stateKey = sample.Phase == "Write" ? "Writing" : "Reading";
-                (sample.Phase == "Write" ? WriteValue : ReadValue).Text = sample.MegabytesPerSecond.ToString("F1", text.Culture);
+                latest = sample; stateKey = sample.Finishing ? "FinishingWrite" : sample.Phase == "Write" ? "Writing" : "Reading";
+                (sample.Phase == "Write" ? WriteValue : ReadValue).SetSpeed(sample.MegabytesPerSecond);
+                if (sample.Phase == "Write") writeSeconds = sample.ElapsedSeconds; else readSeconds = sample.ElapsedSeconds;
+                RefreshTimes();
                 (sample.Phase == "Write" ? WriteChart : ReadChart).Add(sample.Phase, sample.MegabytesPerSecond);
                 Progress.Value = sample.Fraction; RefreshStatus();
             });
-            var result = await Benchmark.RunAsync(selected.Root, selected.Name, TestSizes[preferences.Mode], observer, cancellation.Token);
-            WriteValue.Text = result.WriteMBps.ToString("F1", text.Culture); ReadValue.Text = result.ReadMBps.ToString("F1", text.Culture);
+            var result = await Benchmark.RunAsync(selected.Root, selected.Name, Plan, observer, cancellation.Token);
+            WriteValue.SetSpeed(result.WriteMBps); ReadValue.SetSpeed(result.ReadMBps);
+            writeSeconds = result.WriteSeconds; readSeconds = result.ReadSeconds; RefreshTimes();
             Progress.Value = 1; stateKey = "Done";
             history.Insert(0, result); if (history.Count > 20) history.RemoveRange(20, history.Count - 20);
             try { History.Save(Path.Combine(dataDirectory, "history.json"), history); }
@@ -178,7 +190,7 @@ public partial class MainWindow : Window
     }
     private void SetRunning(bool running)
     {
-        DevicePicker.IsEnabled = RefreshButton.IsEnabled = QuickMode.IsEnabled = StandardMode.IsEnabled = ExtendedMode.IsEnabled = !running;
+        DevicePicker.IsEnabled = RefreshButton.IsEnabled = QuickMode.IsEnabled = LargeFileMode.IsEnabled = SmallFilesMode.IsEnabled = !running;
         StartLabel.Text = text[running ? "Stop" : "Start"]; StartGlyph.Text = running ? "\uE71A" : "\uE768";
         StartButton.IsEnabled = running || DevicePicker.SelectedItem is UsbDrive;
     }
@@ -188,7 +200,7 @@ public partial class MainWindow : Window
         HistoryList.ItemsSource = history.Take(5).Select(r => new
         {
             Summary = text.Format("HistoryLine", r.Device, r.WriteMBps, r.ReadMBps),
-            Detail = $"{r.Time.ToLocalTime().ToString("g", text.Culture)} · {r.TestBytes / (1024 * 1024)} MiB · {r.Root}"
+            Detail = $"{r.Time.ToLocalTime().ToString("g", text.Culture)} · {text[r.Mode]} · {r.TestBytes / (1024 * 1024)} MiB · {r.Root}"
         }).ToList();
     }
     private void ShowNotice(string key, int code = 0)
@@ -203,8 +215,8 @@ public partial class MainWindow : Window
         try
         {
             string Csv(string value) => "\"" + (value.Length > 0 && "=+-@\t\r\n".Contains(value[0]) ? "'" : "") + value.Replace("\"", "\"\"") + "\"";
-            var rows = new List<string> { "Time,Device,Drive,TestBytes,WriteMBps,ReadMBps" };
-            rows.AddRange(history.Select(r => string.Join(",", Csv(r.Time.ToString("O")), Csv(r.Device), Csv(r.Root), r.TestBytes.ToString(CultureInfo.InvariantCulture), r.WriteMBps.ToString("F2", CultureInfo.InvariantCulture), r.ReadMBps.ToString("F2", CultureInfo.InvariantCulture))));
+            var rows = new List<string> { "Time,Device,Drive,Mode,FileCount,TestBytes,WriteMBps,ReadMBps,WriteSeconds,ReadSeconds" };
+            rows.AddRange(history.Select(r => string.Join(",", Csv(r.Time.ToString("O")), Csv(r.Device), Csv(r.Root), Csv(r.Mode), r.FileCount.ToString(CultureInfo.InvariantCulture), r.TestBytes.ToString(CultureInfo.InvariantCulture), r.WriteMBps.ToString("F2", CultureInfo.InvariantCulture), r.ReadMBps.ToString("F2", CultureInfo.InvariantCulture), r.WriteSeconds.ToString("F3", CultureInfo.InvariantCulture), r.ReadSeconds.ToString("F3", CultureInfo.InvariantCulture))));
             File.WriteAllLines(dialog.FileName, rows, new UTF8Encoding(true));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { ShowNotice("ExportFailed"); }

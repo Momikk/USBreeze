@@ -3,7 +3,8 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <AssemblyName>USBreeze</AssemblyName>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
+    <ApplicationIcon>Assets/USBreeze.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -12,6 +13,8 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets/USBreeze.ico" />
+    <Resource Include="Assets/USBreeze.png" />
     <ProjectReference Include="../USBreeze.Core/USBreeze.Core.csproj" />
     <EmbeddedResource Include="../../LICENSE" LogicalName="USBreeze.LICENSE" />
     <EmbeddedResource Include="../../licenses/DOTNET-LICENSE.txt" LogicalName="USBreeze.DOTNET-LICENSE" />

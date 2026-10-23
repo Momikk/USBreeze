@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><UseWPF>true</UseWPF></PropertyGroup><ItemGroup><ProjectReference Include="../../src/USBreeze.Core/USBreeze.Core.csproj"/><Compile Include="../../src/USBreeze.App/AnimatedSpeed.cs" Link="AnimatedSpeed.cs"/><Compile Include="../../src/USBreeze.App/Texts.cs" Link="Texts.cs"/></ItemGroup></Project>

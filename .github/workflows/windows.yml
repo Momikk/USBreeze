@@ -17,6 +17,8 @@ jobs:
         run: dotnet build src/USBreeze.App/USBreeze.App.csproj -c Release
       - name: Check localization and file safety
         run: dotnet run --project tests/USBreeze.Checks -c Release
+      - name: Check smooth number updates
+        run: dotnet run --project tests/USBreeze.UIChecks -c Release
       - name: Publish standalone Windows x64 EXE
         run: dotnet publish src/USBreeze.App/USBreeze.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/single-file
       - name: Verify single-file package

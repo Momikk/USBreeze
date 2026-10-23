@@ -66,6 +66,42 @@ Require(!Directory.EnumerateFiles(folder, ".usbreeze-*.tmp").Any(), "Cancellatio
 Require(await File.ReadAllTextAsync(sentinel) == "must remain unchanged", "Existing files preserved");
 Console.WriteLine("PASS: cancel during write, automatic cleanup, existing file preserved");
 
+Require(TransferPlan.For(TestMode.LargeFile).FileCount == 1 && TransferPlan.For(TestMode.LargeFile).TotalBytes == 1L << 30, "Large-file workload");
+Require(TransferPlan.For(TestMode.SmallFiles).FileCount == 1024 && TransferPlan.For(TestMode.SmallFiles).BytesPerFile == 65536, "Small-file workload");
+foreach (var plan in new[] { new TransferPlan(TestMode.LargeFile, 1, 16 * Benchmark.BlockSize), new TransferPlan(TestMode.SmallFiles, 16, 65536) })
+{
+    var trace = new List<SpeedSample>();
+    var observedCount = 0;
+    var transfer = await Benchmark.RunAsync(folder, "File transfer fixture", plan, new InlineProgress(s =>
+    {
+        trace.Add(s);
+        if (s.Finishing) observedCount = Directory.GetFiles(folder, "*.tmp", SearchOption.AllDirectories).Length;
+    }), CancellationToken.None);
+    Require(observedCount == plan.FileCount, "Actual file count must match chosen workload");
+    Require(transfer.Mode == plan.Mode.ToString() && transfer.FileCount == plan.FileCount, "Mode retained in result");
+    Require(transfer.ReadSeconds > 0 && transfer.WriteSeconds > 0 && transfer.ReadMBps > 0, "Both timed phases complete");
+    Require(Math.Abs(transfer.TestBytes / 1e6 / transfer.WriteSeconds - transfer.WriteMBps) < .00001, "Average includes write completion wait");
+    Require(trace.Any(s => s.Finishing) && trace.Any(s => s.Phase == "Read") && trace.Last().Fraction == 1, "Flush and read stages observed");
+    Require(trace.Zip(trace.Skip(1)).All(pair => pair.First.Fraction <= pair.Second.Fraction), "File-mode progress monotonic");
+    Require(!Directory.EnumerateFileSystemEntries(folder, ".usbreeze-*").Any(), "File-mode files and folder cleaned");
+    foreach (var cancelPhase in new[] { "Write", "Read" })
+    {
+        using var abort = new CancellationTokenSource();
+        try
+        {
+            await Benchmark.RunAsync(folder, "File-mode cancellation", plan,
+                new InlineProgress(s => { if (s.Phase == cancelPhase) abort.Cancel(); }), abort.Token);
+            throw new Exception("File-mode cancellation ignored");
+        }
+        catch (OperationCanceledException) { }
+        Require(!Directory.EnumerateFileSystemEntries(folder, ".usbreeze-*").Any(), "File-mode cancellation cleanup");
+    }
+}
+Require(await File.ReadAllTextAsync(sentinel) == "must remain unchanged", "File modes preserved existing data");
+var legacy = JsonSerializer.Deserialize<BenchmarkResult>("{\"Time\":\"2026-10-22T00:00:00Z\",\"Device\":\"old\",\"Root\":\"E:\\\\\",\"TestBytes\":1024,\"WriteMBps\":1,\"ReadMBps\":2}");
+Require(legacy?.Mode == "Quick" && legacy.FileCount == 1, "Old results remain readable");
+Console.WriteLine("PASS: large-file / small-file I/O, counts, write completion timing, read/write cancellation, cleanup and old result compatibility");
+
 var historyPath = Path.Combine(folder, "history.json");
 History.Save(historyPath, Enumerable.Repeat(result, 25));
 Require(History.Load(historyPath).Count == 20, "History capped at 20");
